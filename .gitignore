@@ -1,1 +1,3 @@
 .jq-template.awk
+
+build_logs/**
