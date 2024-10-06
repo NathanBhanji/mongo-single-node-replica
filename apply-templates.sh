@@ -47,22 +47,5 @@ for version; do
 	} > "$version/Dockerfile"
 
 	cp -a docker-entrypoint.sh "$version/"
-
-	variants="$(jq -r '.[env.version].targets.windows.variants | map(@sh) | join(" ")' versions.json)"
-	eval "variants=( $variants )"
-	for variant in "${variants[@]}"; do
-		windowsVariant="${variant%%-*}" # "windowsservercore", "nanoserver"
-		windowsRelease="${variant#$windowsVariant-}" # "ltsc2022", "1809", etc
-		windowsVariant="${windowsVariant#windows}" # "servercore", "nanoserver"
-		export windowsVariant windowsRelease
-
-		dir="$version/windows/$variant"
-		echo "processing $dir ..."
-
-		mkdir -p "$dir"
-		{
-			generated_warning
-			gawk -f "$jqt" Dockerfile-windows.template
-		} > "$dir/Dockerfile"
-	done
+	cp -a keyfile "$version/"
 done
