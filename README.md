@@ -1,4 +1,4 @@
-# https://github.com/docker-library/mongo
+# MongoDB single node replica set (for local development / testing)
 
 ## Maintained by: [Nathan Bhanji](https://github.com/NathanBhanji)
 
