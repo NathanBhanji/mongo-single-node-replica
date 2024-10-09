@@ -1,4 +1,4 @@
-# This file is generated via https://github.com/NathanBhanji/mongo-single-node-replica/blob/faa7e4c6c0e7269606b87a78cf2d159e298a84b5/generate-stackbrew-library.sh
+# This file is generated via https://github.com/NathanBhanji/mongo-single-node-replica/blob/b49d88c25e2eb0b321397c45fbadb04ef1671068/generate-stackbrew-library.sh
 
 Maintainers: Nathan Bhanji <nathanbhanji@flux-ltd.co.uk> (@NathanBhanji)
 GitRepo: https://github.com/NathanBhanji/mongo-single-node-replica.git
@@ -14,6 +14,12 @@ SharedTags: 8.0.0, 8.0, 8, latest
 Architectures: amd64, arm64v8
 GitCommit: 565067d2783c29303826e38741015f71fc089882
 Directory: 8.0
+
+Tags: 7.0.15-rc1-jammy, 7.0-rc-jammy
+SharedTags: 7.0.15-rc1, 7.0-rc
+Architectures: amd64, arm64v8
+GitCommit: d30fffbf570b1725a8d79f4d8ea2132f83d9128a
+Directory: 7.0-rc
 
 Tags: 7.0.14-jammy, 7.0-jammy, 7-jammy
 SharedTags: 7.0.14, 7.0, 7
