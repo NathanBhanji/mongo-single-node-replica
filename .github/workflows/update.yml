@@ -15,6 +15,16 @@ jobs:
       - name: 📦 Install jq
         run: sudo apt-get install -y jq
 
+      - name: 🔧 Install bashbrew
+        run: |
+          set -euox pipefail
+          BASHBREW_ARCH=amd64
+          BASHBREW_VERSION=$(curl -sSL https://api.github.com/repos/docker-library/bashbrew/releases/latest | jq -r .tag_name)
+          curl -sSL --retry 3 "https://github.com/docker-library/bashbrew/releases/download/${BASHBREW_VERSION}/bashbrew-${BASHBREW_ARCH}" -o bashbrew
+          chmod +x bashbrew
+          sudo mv bashbrew /usr/local/bin/
+          bashbrew --version
+
       - name: 🚀 Run update script and generate library file
         run: |
           ./update.sh
@@ -25,11 +35,18 @@ jobs:
         run: |
           if ! git diff --exit-code libraryfile; then
             changes=$(git diff --unified=0 libraryfile | grep '^[+-]' | grep -v '^[+-]\{3\}')
-            summary=$(echo "$changes" | awk -F':' '{print $1}' | sort | uniq | head -n 3 | tr '\n' ',' | sed 's/,$//')
+            echo "changes<<EOF" >> $GITHUB_OUTPUT
+            echo "$changes" >> $GITHUB_OUTPUT
+            echo "EOF" >> $GITHUB_OUTPUT
+            summary=$(echo "$changes" | grep -oP '(?<=^[+-])[^:]+' | sort -u | head -n 3 | paste -sd ',' -)
             echo "summary=$summary" >> $GITHUB_OUTPUT
+            echo "has_changes=true" >> $GITHUB_OUTPUT
+          else
+            echo "has_changes=false" >> $GITHUB_OUTPUT
           fi
 
       - name: 🚢 Create Pull Request
+        if: steps.git-check.outputs.has_changes == 'true'
         uses: peter-evans/create-pull-request@v7
         with:
           token: ${{ secrets.PAT_TOKEN }}
