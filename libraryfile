@@ -1,40 +1,34 @@
-# This file is generated via https://github.com/NathanBhanji/mongo-single-node-replica/blob/b49d88c25e2eb0b321397c45fbadb04ef1671068/generate-stackbrew-library.sh
+# This file is generated via https://github.com/NathanBhanji/mongo-single-node-replica/blob/3334bf6b15f8867400f0c7d6d088438fb7f213af/generate-stackbrew-library.sh
 
 Maintainers: Nathan Bhanji <nathanbhanji@flux-ltd.co.uk> (@NathanBhanji)
 GitRepo: https://github.com/NathanBhanji/mongo-single-node-replica.git
 
-Tags: 8.0.1-rc0-noble, 8.0-rc-noble
-SharedTags: 8.0.1-rc0, 8.0-rc
+Tags: 8.0.1-noble, 8.0-noble, 8-noble, noble
+SharedTags: 8.0.1, 8.0, 8, latest
 Architectures: amd64, arm64v8
-GitCommit: 3a52e86a34f0830380a86a219f1e42d0081b3b2e
-Directory: 8.0-rc
-
-Tags: 8.0.0-noble, 8.0-noble, 8-noble, noble
-SharedTags: 8.0.0, 8.0, 8, latest
-Architectures: amd64, arm64v8
-GitCommit: 565067d2783c29303826e38741015f71fc089882
+GitCommit: 3334bf6b15f8867400f0c7d6d088438fb7f213af
 Directory: 8.0
 
 Tags: 7.0.15-rc1-jammy, 7.0-rc-jammy
 SharedTags: 7.0.15-rc1, 7.0-rc
 Architectures: amd64, arm64v8
-GitCommit: d30fffbf570b1725a8d79f4d8ea2132f83d9128a
+GitCommit: 3334bf6b15f8867400f0c7d6d088438fb7f213af
 Directory: 7.0-rc
 
 Tags: 7.0.14-jammy, 7.0-jammy, 7-jammy
 SharedTags: 7.0.14, 7.0, 7
 Architectures: amd64, arm64v8
-GitCommit: 3a52e86a34f0830380a86a219f1e42d0081b3b2e
+GitCommit: 3334bf6b15f8867400f0c7d6d088438fb7f213af
 Directory: 7.0
 
 Tags: 6.0.18-jammy, 6.0-jammy, 6-jammy
 SharedTags: 6.0.18, 6.0, 6
 Architectures: amd64, arm64v8
-GitCommit: 3a52e86a34f0830380a86a219f1e42d0081b3b2e
+GitCommit: 3334bf6b15f8867400f0c7d6d088438fb7f213af
 Directory: 6.0
 
 Tags: 5.0.29-focal, 5.0-focal, 5-focal
 SharedTags: 5.0.29, 5.0, 5
 Architectures: amd64, arm64v8
-GitCommit: 3a52e86a34f0830380a86a219f1e42d0081b3b2e
+GitCommit: 3334bf6b15f8867400f0c7d6d088438fb7f213af
 Directory: 5.0
