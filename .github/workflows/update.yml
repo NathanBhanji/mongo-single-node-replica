@@ -15,6 +15,16 @@ jobs:
       - name: 📦 Install jq
         run: sudo apt-get install -y jq
 
+      - name: 🔧 Install bashbrew
+        run: |
+          set -euox pipefail
+          BASHBREW_ARCH=amd64
+          BASHBREW_VERSION=$(curl -sSL https://api.github.com/repos/docker-library/bashbrew/releases/latest | jq -r .tag_name)
+          curl -sSL --retry 3 "https://github.com/docker-library/bashbrew/releases/download/${BASHBREW_VERSION}/bashbrew-${BASHBREW_ARCH}" -o bashbrew
+          chmod +x bashbrew
+          sudo mv bashbrew /usr/local/bin/
+          bashbrew --version
+
       - name: 🚀 Run update script and generate library file
         run: |
           ./update.sh
