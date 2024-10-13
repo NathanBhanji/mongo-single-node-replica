@@ -192,69 +192,14 @@
     "version": "7.0.15-rc1"
   },
   "8.0": {
-    "changes": "https://jira.mongodb.org/issues/?jql=project%20%3D%20SERVER%20AND%20fixVersion%20%3D%20%228.0.0%22%20ORDER%20BY%20status%20DESC%2C%20priority%20DESC",
-    "date": "09/11/2024",
-    "githash": "d7cd03b239ac39a3c7d63f7145e91aca36f93db6",
-    "linux": "ubuntu2404",
-    "notes": "https://docs.mongodb.org/master/release-notes/8.0/",
-    "pgp": [
-      {
-        "fingerprints": [
-          "4B0752C1BCA238C0B4EE14DC41DE058A4E7DCA05"
-        ],
-        "url": "https://pgp.mongodb.com/server-8.0.asc"
-      }
-    ],
-    "targets": {
-      "debian12": {
-        "arches": [
-          "amd64"
-        ],
-        "image": "debian:bookworm-slim",
-        "suite": "bookworm"
-      },
-      "ubuntu2004": {
-        "arches": [
-          "amd64",
-          "arm64v8"
-        ],
-        "image": "ubuntu:focal",
-        "suite": "focal"
-      },
-      "ubuntu2204": {
-        "arches": [
-          "amd64",
-          "arm64v8"
-        ],
-        "image": "ubuntu:jammy",
-        "suite": "jammy"
-      },
-      "ubuntu2404": {
-        "arches": [
-          "amd64",
-          "arm64v8"
-        ],
-        "image": "ubuntu:noble",
-        "suite": "noble"
-      }
-    },
-    "version": "8.0.0"
-  },
-  "8.0-rc": {
     "changes": "https://jira.mongodb.org/issues/?jql=project%20%3D%20SERVER%20AND%20fixVersion%20%3D%20%228.0.1%22%20ORDER%20BY%20status%20DESC%2C%20priority%20DESC",
-    "date": "09/27/2024",
+    "date": "10/03/2024",
     "githash": "fcbe67d668fff5a370e2d87b9b1f74bc11bb7b94",
     "linux": "ubuntu2404",
     "notes": "https://docs.mongodb.org/master/release-notes/8.0/",
     "pgp": [
       {
         "fingerprints": [
-          "28DE23AF08040FB24C33F36381B0EBBBADCEA95C"
-        ],
-        "url": "https://pgp.mongodb.com/server-dev.asc"
-      },
-      {
-        "fingerprints": [
           "4B0752C1BCA238C0B4EE14DC41DE058A4E7DCA05"
         ],
         "url": "https://pgp.mongodb.com/server-8.0.asc"
@@ -293,6 +238,7 @@
         "suite": "noble"
       }
     },
-    "version": "8.0.1-rc0"
-  }
+    "version": "8.0.1"
+  },
+  "8.0-rc": null
 }
