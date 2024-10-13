@@ -29,17 +29,17 @@ find_updated_versions() {
     echo "$updated"
 }
 
-# Function to prepare output (remove leading and trailing whitespace)
-prepare_output() {
+# Function to trim whitespace from a string
+trim_whitespace() {
     echo "$1" | tr '\n' ' ' | sed -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//'
 }
 
-# Function to prepare summary
-prepare_summary() {
+# Function to create a summary of changes
+create_summary() {
     local summary=""
-    [ -n "$1" ] && summary="${summary}Updated: $(echo $1 | tr ' ' ',' | sed 's/,/, /g') "
-    [ -n "$2" ] && summary="${summary}Removed: $(echo $2 | tr ' ' ',' | sed 's/,/, /g') "
-    [ -n "$3" ] && summary="${summary}Added: $(echo $3 | tr ' ' ',' | sed 's/,/, /g') "
+    [ -n "$1" ] && summary+="Updated: $(echo $1 | tr ' ' ',' | sed 's/,/, /g') "
+    [ -n "$2" ] && summary+="Removed: $(echo $2 | tr ' ' ',' | sed 's/,/, /g') "
+    [ -n "$3" ] && summary+="Added: $(echo $3 | tr ' ' ',' | sed 's/,/, /g') "
     echo "${summary% }" | sed 's/  */ /g'
 }
 
@@ -54,31 +54,24 @@ main() {
     # Get current versions
     current_versions=$(get_versions "libraryfile")
 
-    # Get previous versions (if in a git repository)
+    # Extract previous versions if in a git repository
+    previous_versions=""
     if is_git_repo; then
         previous_versions=$(get_previous_versions)
-    else
-        previous_versions=""
     fi
 
     # Find updated, added, and removed versions
     updated_versions=$(find_updated_versions "$current_versions")
-
-    if [ -n "$previous_versions" ]; then
-        added_versions=$(comm -13 <(echo "$previous_versions") <(echo "$current_versions"))
-        removed_versions=$(comm -23 <(echo "$previous_versions") <(echo "$current_versions"))
-    else
-        added_versions="$current_versions"
-        removed_versions=""
-    fi
+    added_versions=$(comm -13 <(echo "$previous_versions") <(echo "$current_versions"))
+    removed_versions=$(comm -23 <(echo "$previous_versions") <(echo "$current_versions"))
 
     # Prepare output
-    updated_versions=$(prepare_output "$updated_versions")
-    removed_versions=$(prepare_output "$removed_versions")
-    added_versions=$(prepare_output "$added_versions")
+    updated_versions=$(trim_whitespace "$updated_versions")
+    removed_versions=$(trim_whitespace "$removed_versions")
+    added_versions=$(trim_whitespace "$added_versions")
 
-    # Prepare summary
-    summary=$(prepare_summary "$updated_versions" "$removed_versions" "$added_versions")
+    # Create summary
+    summary=$(create_summary "$updated_versions" "$removed_versions" "$added_versions")
 
     # Output results
     echo "updated_versions=$updated_versions"
