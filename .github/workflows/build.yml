@@ -1,0 +1,73 @@
+name: 🐳 Docker Build and Push
+
+on:
+  push:
+    branches:
+      - master
+    paths:
+      - "libraryfile"
+  workflow_dispatch: # Allow manual triggering
+
+jobs:
+  find:
+    name: 🔍 Find
+    runs-on: ubuntu-latest
+    outputs:
+      matrix: ${{ steps.create-matrix.outputs.matrix }}
+    steps:
+      - name: 🛒 Checkout code
+        uses: actions/checkout@v4
+
+      - name: 🔧 Generate matrix JSON
+        id: generate-matrix
+        run: |
+          MATRIX=$(awk '
+            BEGIN { print "[" }
+            /^Tags:/ { 
+              tags=$0; getline; 
+              sharedtags=$0; getline; 
+              architectures=$0; getline; 
+              gitcommit=$0; getline;
+              directory=$0;
+              printf "%s{\"tags\":\"%s\", \"sharedtags\":\"%s\", \"architectures\":\"%s\", \"gitcommit\":\"%s\", \"directory\":\"%s\"}", (NR>4?",":""),
+                substr(tags,6), substr(sharedtags,12), substr(architectures,15), substr(gitcommit,11), substr(directory,11)
+            }
+            END { print "]" }
+          ' libraryfile | sed 's/\s\+/ /g' | sed 's/^,//')
+          echo "$MATRIX" > matrix.json
+
+      - name: 🔧 Create matrix
+        id: create-matrix
+        run: |
+          MATRIX=$(cat matrix.json | jq -c .)
+          echo "matrix=$MATRIX" >> $GITHUB_OUTPUT
+
+  build-and-push:
+    name: 🚀 Build and Push ${{ matrix.directory }}
+    needs: find
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        include: ${{fromJson(needs.find.outputs.matrix)}}
+    steps:
+      - name: 🛒 Checkout code
+        uses: actions/checkout@v4
+
+      - name: 🔧 Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+        id: buildx
+        with:
+          install: true
+
+      - name: 🔑 Login to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKER_HUB_USERNAME }}
+          password: ${{ secrets.DOCKER_HUB_ACCESS_TOKEN }}
+
+      - name: 🚀 Build and push
+        env:
+          BUILDX_BUILDER: ${{ steps.buildx.outputs.name }}
+        run: |
+          chmod +x build.sh
+          ./build.sh "${{ matrix.tags }}" "${{ matrix.sharedtags }}" "${{ matrix.architectures }}" "${{ matrix.directory }}"
