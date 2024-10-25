@@ -1,8 +1,8 @@
 {
   "5.0": {
-    "changes": "https://jira.mongodb.org/issues/?jql=project%20%3D%20SERVER%20AND%20fixVersion%20%3D%20%225.0.29%22%20ORDER%20BY%20status%20DESC%2C%20priority%20DESC",
-    "date": "08/26/2024",
-    "githash": "cd239f3b0c7796df9e576ae5a9efcf4e6960560c",
+    "changes": "https://jira.mongodb.org/issues/?jql=project%20%3D%20SERVER%20AND%20fixVersion%20%3D%20%225.0.30%22%20ORDER%20BY%20status%20DESC%2C%20priority%20DESC",
+    "date": "10/17/2024",
+    "githash": "966efda23d779a86c76c34e1b13e561d68f2bb37",
     "linux": "ubuntu2004",
     "notes": "https://docs.mongodb.org/master/release-notes/5.0/",
     "pgp": [
@@ -37,13 +37,13 @@
         "suite": "focal"
       }
     },
-    "version": "5.0.29"
+    "version": "5.0.30"
   },
   "5.0-rc": null,
   "6.0": {
-    "changes": "https://jira.mongodb.org/issues/?jql=project%20%3D%20SERVER%20AND%20fixVersion%20%3D%20%226.0.18%22%20ORDER%20BY%20status%20DESC%2C%20priority%20DESC",
-    "date": "09/12/2024",
-    "githash": "2a2b949da51fa5d7402ffe31280067baf21bbbdd",
+    "changes": "https://jira.mongodb.org/issues/?jql=project%20%3D%20SERVER%20AND%20fixVersion%20%3D%20%226.0.19%22%20ORDER%20BY%20status%20DESC%2C%20priority%20DESC",
+    "date": "10/17/2024",
+    "githash": "a7ada5ff3a4d8a1e2ed88f86bd6b3d1d16cb43c6",
     "linux": "ubuntu2204",
     "notes": "https://docs.mongodb.org/master/release-notes/6.0/",
     "pgp": [
@@ -86,70 +86,16 @@
         "suite": "jammy"
       }
     },
-    "version": "6.0.18"
+    "version": "6.0.19"
   },
   "6.0-rc": null,
   "7.0": {
-    "changes": "https://jira.mongodb.org/issues/?jql=project%20%3D%20SERVER%20AND%20fixVersion%20%3D%20%227.0.14%22%20ORDER%20BY%20status%20DESC%2C%20priority%20DESC",
-    "date": "08/20/2024",
-    "githash": "ce59cfc6a3c5e5c067dca0d30697edd68d4f5188",
-    "linux": "ubuntu2204",
-    "notes": "https://docs.mongodb.org/master/release-notes/7.0/",
-    "pgp": [
-      {
-        "fingerprints": [
-          "E58830201F7DD82CD808AA84160D26BB1785BA38"
-        ],
-        "url": "https://pgp.mongodb.com/server-7.0.asc"
-      }
-    ],
-    "targets": {
-      "debian11": {
-        "arches": [
-          "amd64"
-        ],
-        "image": "debian:bullseye-slim",
-        "suite": "bullseye"
-      },
-      "debian12": {
-        "arches": [
-          "amd64"
-        ],
-        "image": "debian:bookworm-slim",
-        "suite": "bookworm"
-      },
-      "ubuntu2004": {
-        "arches": [
-          "amd64",
-          "arm64v8"
-        ],
-        "image": "ubuntu:focal",
-        "suite": "focal"
-      },
-      "ubuntu2204": {
-        "arches": [
-          "amd64",
-          "arm64v8"
-        ],
-        "image": "ubuntu:jammy",
-        "suite": "jammy"
-      }
-    },
-    "version": "7.0.14"
-  },
-  "7.0-rc": {
     "changes": "https://jira.mongodb.org/issues/?jql=project%20%3D%20SERVER%20AND%20fixVersion%20%3D%20%227.0.15%22%20ORDER%20BY%20status%20DESC%2C%20priority%20DESC",
-    "date": "10/08/2024",
-    "githash": "69485f7247ad11533875e05213fdc4a402c88bd8",
+    "date": "10/17/2024",
+    "githash": "57939cc60865b0ce431c7e08c2589fa266a1a740",
     "linux": "ubuntu2204",
     "notes": "https://docs.mongodb.org/master/release-notes/7.0/",
     "pgp": [
-      {
-        "fingerprints": [
-          "28DE23AF08040FB24C33F36381B0EBBBADCEA95C"
-        ],
-        "url": "https://pgp.mongodb.com/server-dev.asc"
-      },
       {
         "fingerprints": [
           "E58830201F7DD82CD808AA84160D26BB1785BA38"
@@ -189,12 +135,13 @@
         "suite": "jammy"
       }
     },
-    "version": "7.0.15-rc1"
+    "version": "7.0.15"
   },
+  "7.0-rc": null,
   "8.0": {
-    "changes": "https://jira.mongodb.org/issues/?jql=project%20%3D%20SERVER%20AND%20fixVersion%20%3D%20%228.0.1%22%20ORDER%20BY%20status%20DESC%2C%20priority%20DESC",
-    "date": "10/03/2024",
-    "githash": "fcbe67d668fff5a370e2d87b9b1f74bc11bb7b94",
+    "changes": "https://jira.mongodb.org/issues/?jql=project%20%3D%20SERVER%20AND%20fixVersion%20%3D%20%228.0.3%22%20ORDER%20BY%20status%20DESC%2C%20priority%20DESC",
+    "date": "10/17/2024",
+    "githash": "89d97f2744a2b9851ddfb51bdf22f687562d9b06",
     "linux": "ubuntu2404",
     "notes": "https://docs.mongodb.org/master/release-notes/8.0/",
     "pgp": [
@@ -238,7 +185,7 @@
         "suite": "noble"
       }
     },
-    "version": "8.0.1"
+    "version": "8.0.3"
   },
   "8.0-rc": null
 }
