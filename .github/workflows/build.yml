@@ -63,9 +63,9 @@ jobs:
         run: |
           set -x  # Enable debug output
           sudo apt-get update
-          sudo apt-get install -y qemu-user-static
+          sudo apt-get install -y qemu-user-static binfmt-support
           wget -qO- https://github.com/multiarch/qemu-user-static/releases/download/v7.2.0-1/qemu-aarch64-static.tar.gz | sudo tar xvz -C /usr/bin
-          sudo update-binfmts --enable qemu-arm
+          sudo update-binfmts --enable qemu-aarch64
 
       - name: 🔑 Login to Docker Hub
         uses: docker/login-action@v3
