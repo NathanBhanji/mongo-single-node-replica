@@ -59,10 +59,10 @@ RUN set -eux; \
 	\
 # download/install MongoDB PGP keys
 	export GNUPGHOME="$(mktemp -d)"; \
-	wget -O KEYS 'https://pgp.mongodb.com/server-7.0.asc'; \
+	wget -O KEYS 'https://pgp.mongodb.com/server-dev.asc' 'https://pgp.mongodb.com/server-7.0.asc'; \
 	gpg --batch --import KEYS; \
 	mkdir -p /etc/apt/keyrings; \
-	gpg --batch --export --armor 'E58830201F7DD82CD808AA84160D26BB1785BA38' > /etc/apt/keyrings/mongodb.asc; \
+	gpg --batch --export --armor '28DE23AF08040FB24C33F36381B0EBBBADCEA95C' 'E58830201F7DD82CD808AA84160D26BB1785BA38' > /etc/apt/keyrings/mongodb.asc; \
 	gpgconf --kill all; \
 	rm -rf "$GNUPGHOME" KEYS; \
 	\
@@ -85,12 +85,14 @@ ARG MONGO_PACKAGE=mongodb-org
 ARG MONGO_REPO=repo.mongodb.org
 ENV MONGO_PACKAGE=${MONGO_PACKAGE} MONGO_REPO=${MONGO_REPO}
 
-ENV MONGO_MAJOR 7.0
+ENV MONGO_MAJOR testing
 RUN echo "deb [ signed-by=/etc/apt/keyrings/mongodb.asc ] http://$MONGO_REPO/apt/ubuntu jammy/${MONGO_PACKAGE%-unstable}/$MONGO_MAJOR multiverse" | tee "/etc/apt/sources.list.d/${MONGO_PACKAGE%-unstable}.list"
+# add GA repo for mongodb-mongosh and mongodb-database-tools
+RUN echo "deb [ signed-by=/etc/apt/keyrings/mongodb.asc ] http://$MONGO_REPO/apt/ubuntu jammy/${MONGO_PACKAGE%-unstable}/7.0 multiverse" | tee "/etc/apt/sources.list.d/mongodb-7.0.list"
 
 # https://docs.mongodb.org/master/release-notes/7.0/
-ENV MONGO_VERSION 7.0.20
-# 04/25/2025, https://github.com/mongodb/mongo/tree/cf29fc744f8ee2ac9245f2845f29c6a706dc375a
+ENV MONGO_VERSION 7.0.21~rc0
+# 05/20/2025, https://github.com/mongodb/mongo/tree/a47b62aff2bae1914085c3ef1d90fc099acf000c
 
 RUN set -x \
 # installing "mongodb-enterprise" pulls in "tzdata" which prompts for input
