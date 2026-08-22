@@ -19,7 +19,7 @@ RUN set -eux; \
 	rm -rf /var/lib/apt/lists/*
 
 # grab gosu for easy step-down from root (https://github.com/tianon/gosu/releases)
-ENV GOSU_VERSION 1.17
+ENV GOSU_VERSION 1.19
 # grab "js-yaml" for parsing mongod's YAML config files (https://github.com/nodeca/js-yaml/releases)
 ENV JSYAML_VERSION 3.13.1
 ENV JSYAML_CHECKSUM 662e32319bdd378e91f67578e56a34954b0a2e33aca11d70ab9f4826af24b941
@@ -76,15 +76,15 @@ RUN mkdir /docker-entrypoint-initdb.d
 # Options for MONGO_PACKAGE: mongodb-org OR mongodb-enterprise
 # Options for MONGO_REPO: repo.mongodb.org OR repo.mongodb.com
 # Example: docker build --build-arg MONGO_PACKAGE=mongodb-enterprise --build-arg MONGO_REPO=repo.mongodb.com .
-ARG MONGO_PACKAGE=mongodb-org{{ if (env.version != env.rcVersion) and (env.rcVersion | split(".")[1] | tonumber % 2 == 1) then "-unstable" else "" end }}
+ARG MONGO_PACKAGE=mongodb-org
 ARG MONGO_REPO=repo.mongodb.org
 ENV MONGO_PACKAGE=${MONGO_PACKAGE} MONGO_REPO=${MONGO_REPO}
 
 ENV MONGO_MAJOR {{ if env.version != env.rcVersion then "testing" else env.version end }}
-RUN echo "deb [ signed-by=/etc/apt/keyrings/mongodb.asc ] http://$MONGO_REPO/apt/{{ target.image | gsub(":.*$"; "") }} {{ target.suite }}/${MONGO_PACKAGE%-unstable}/$MONGO_MAJOR {{ if target.image | test("^debian") then "main" else "multiverse" end }}" | tee "/etc/apt/sources.list.d/${MONGO_PACKAGE%-unstable}.list"
+RUN echo "deb [ signed-by=/etc/apt/keyrings/mongodb.asc ] http://$MONGO_REPO/apt/{{ target.image | gsub(":.*$"; "") }} {{ target.suite }}/$MONGO_PACKAGE/$MONGO_MAJOR {{ if target.image | test("^debian") then "main" else "multiverse" end }}" | tee "/etc/apt/sources.list.d/$MONGO_PACKAGE.list"
 {{ if env.version != env.rcVersion then ( -}}
 # add GA repo for mongodb-mongosh and mongodb-database-tools
-RUN echo "deb [ signed-by=/etc/apt/keyrings/mongodb.asc ] http://$MONGO_REPO/apt/{{ target.image | gsub(":.*$"; "") }} {{ target.suite }}/${MONGO_PACKAGE%-unstable}/{{ env.rcVersion }} {{ if target.image | test("^debian") then "main" else "multiverse" end }}" | tee "/etc/apt/sources.list.d/mongodb-{{ env.rcVersion }}.list"
+RUN echo "deb [ signed-by=/etc/apt/keyrings/mongodb.asc ] http://$MONGO_REPO/apt/{{ target.image | gsub(":.*$"; "") }} {{ target.suite }}/$MONGO_PACKAGE/{{ .dockerNeedsVersion // env.rcVersion }} {{ if target.image | test("^debian") then "main" else "multiverse" end }}" | tee "/etc/apt/sources.list.d/mongodb-{{ .dockerNeedsVersion // env.rcVersion }}.list"
 {{ ) else "" end -}}
 
 {{ if .notes then ( -}}
@@ -119,6 +119,13 @@ VOLUME /data/db /data/configdb
 # ensure that if running as custom user that "mongosh" has a valid "HOME"
 # https://github.com/docker-library/mongo/issues/524
 ENV HOME /data/db
+{{ if (env.rcVersion | tonumber >= 8) then ( -}}
+{{ # TODO remove this when it is no longer necessary: https://www.mongodb.com/docs/manual/administration/tcmalloc-performance/#enable-per-cpu-caches -}}
+
+# ensure that glibc isn't using rseq so that google-tcmalloc can
+# https://www.mongodb.com/docs/manual/administration/tcmalloc-performance/#disable-glibc-rseq
+ENV GLIBC_TUNABLES glibc.pthread.rseq=0
+{{ ) else "" end -}}
 
 COPY keyfile /auth/keyfile
 RUN chmod 400 /auth/keyfile
