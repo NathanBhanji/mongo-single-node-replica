@@ -6,66 +6,200 @@ on:
       - master
     paths:
       - "libraryfile"
-  workflow_dispatch: # Allow manual triggering
+      - "*/Dockerfile"
+      - "*/docker-entrypoint.sh"
+      - "*/keyfile"
+      - ".github/workflows/build.yml"
+  pull_request:
+  workflow_dispatch:
+    inputs:
+      push:
+        description: "Push images to Docker Hub"
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+concurrency:
+  group: build-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+env:
+  IMAGE: bhanji/mongo-single-node-replica
+  # Only push on master, or when explicitly asked to via workflow_dispatch.
+  PUSH: ${{ github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && inputs.push) }}
 
 jobs:
   find:
     name: 🔍 Find
     runs-on: ubuntu-latest
     outputs:
-      matrix: ${{ steps.create-matrix.outputs.matrix }}
+      entries: ${{ steps.matrix.outputs.entries }}
+      builds: ${{ steps.matrix.outputs.builds }}
     steps:
       - name: 🛒 Checkout code
         uses: actions/checkout@v4
 
-      - name: 🔧 Generate matrix JSON
-        id: generate-matrix
+      - name: 🔧 Parse libraryfile into build matrices
+        id: matrix
         run: |
-          MATRIX=$(awk '
-            BEGIN { print "[" }
-            /^Tags:/ { 
-              tags=$0; getline; 
-              sharedtags=$0; getline; 
-              architectures=$0; getline; 
-              gitcommit=$0; getline;
-              directory=$0;
-              printf "%s{\"tags\":\"%s\", \"sharedtags\":\"%s\", \"architectures\":\"%s\", \"gitcommit\":\"%s\", \"directory\":\"%s\"}", (NR>4?",":""),
-                substr(tags,6), substr(sharedtags,12), substr(architectures,15), substr(gitcommit,11), substr(directory,11)
-            }
-            END { print "]" }
-          ' libraryfile | sed 's/\s\+/ /g' | sed 's/^,//')
-          echo "$MATRIX" > matrix.json
+          set -Eeuo pipefail
+          # One JSON object per "Tags:" stanza of the (bashbrew-format) libraryfile.
+          entries="$(
+            awk 'BEGIN { RS = ""; FS = "\n" }
+              /^Tags:/ {
+                t = s = a = c = d = ""
+                for (i = 1; i <= NF; i++) {
+                  k = $i; sub(/:.*$/, "", k)
+                  v = $i; sub(/^[^:]*:[ \t]*/, "", v)
+                  if (k == "Tags") t = v
+                  else if (k == "SharedTags") s = v
+                  else if (k == "Architectures") a = v
+                  else if (k == "GitCommit") c = v
+                  else if (k == "Directory") d = v
+                }
+                printf "%s{\"tags\":\"%s\",\"sharedtags\":\"%s\",\"architectures\":\"%s\",\"gitcommit\":\"%s\",\"directory\":\"%s\"}", (n++ ? "," : ""), t, s, a, c, d
+              }
+              BEGIN { printf "[" } END { print "]" }' libraryfile \
+            | jq -c '
+              def trim: gsub("^\\s+|\\s+$"; "");
+              map(
+                .tags |= (split(",") | map(trim) | map(select(length > 0)))
+                | .sharedtags |= (split(",") | map(trim) | map(select(length > 0)))
+                | .architectures |= (split(",") | map(trim) | map(select(length > 0)))
+                | .alltags = ((.tags + .sharedtags) | join(" "))
+              )'
+          )"
+          echo "entries: $entries"
 
-      - name: 🔧 Create matrix
-        id: create-matrix
-        run: |
-          MATRIX=$(cat matrix.json | jq -c .)
-          echo "matrix=$MATRIX" >> $GITHUB_OUTPUT
+          # Cross product of entries x architectures, each on a *native* runner
+          # (no QEMU): amd64 on ubuntu-24.04, arm64 on ubuntu-24.04-arm.
+          builds="$(jq -c '
+            {
+              "amd64":   { platform: "linux/amd64",    runner: "ubuntu-24.04" },
+              "arm64v8": { platform: "linux/arm64/v8", runner: "ubuntu-24.04-arm" }
+            } as $archMap
+            | [
+              .[] as $e
+              | $e.architectures[] as $arch
+              | ($archMap[$arch] // error("unsupported architecture: \($arch)"))
+              | { directory: $e.directory, arch: $arch, platform: .platform, runner: .runner }
+            ]' <<<"$entries")"
+          echo "builds: $builds"
 
-  build-and-push:
-    name: 🚀 Build and Push ${{ matrix.directory }}
+          echo "entries=$entries" >> "$GITHUB_OUTPUT"
+          echo "builds=$builds" >> "$GITHUB_OUTPUT"
+
+  build:
+    name: 🏗️ Build ${{ matrix.directory }} (${{ matrix.arch }})
     needs: find
-    runs-on: ubuntu-latest
+    runs-on: ${{ matrix.runner }}
     strategy:
+      fail-fast: false
       matrix:
-        include: ${{fromJson(needs.find.outputs.matrix)}}
+        include: ${{ fromJson(needs.find.outputs.builds) }}
     steps:
       - name: 🛒 Checkout code
         uses: actions/checkout@v4
 
       - name: 🔧 Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
-        id: buildx
-        with:
-          install: true
 
-      - name: Set up QEMU
+      - name: 🔑 Login to Docker Hub
+        if: env.PUSH == 'true'
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKER_HUB_USERNAME }}
+          password: ${{ secrets.DOCKER_HUB_ACCESS_TOKEN }}
+
+      - name: 🏗️ Build (and push by digest)
+        id: build
+        uses: docker/build-push-action@v6
+        with:
+          context: ./${{ matrix.directory }}
+          platforms: ${{ matrix.platform }}
+          provenance: false
+          cache-from: type=gha,scope=${{ matrix.directory }}-${{ matrix.arch }}
+          cache-to: type=gha,scope=${{ matrix.directory }}-${{ matrix.arch }},mode=max
+          outputs: type=image,name=${{ env.IMAGE }},push-by-digest=true,name-canonical=true,push=${{ env.PUSH }}
+
+      - name: 📦 Load image into local Docker for testing
+        uses: docker/build-push-action@v6
+        with:
+          context: ./${{ matrix.directory }}
+          platforms: ${{ matrix.platform }}
+          provenance: false
+          cache-from: type=gha,scope=${{ matrix.directory }}-${{ matrix.arch }}
+          load: true
+          tags: ${{ env.IMAGE }}:test
+
+      - name: 🧪 Smoke test single-node replica set
         run: |
-          set -x  # Enable debug output
-          sudo apt-get update
-          sudo apt-get install -y qemu-user-static binfmt-support
-          wget -qO- https://github.com/multiarch/qemu-user-static/releases/download/v7.2.0-1/qemu-aarch64-static.tar.gz | sudo tar xvz -C /usr/bin
-          sudo update-binfmts --enable qemu-aarch64
+          set -Eeuo pipefail
+          docker run -d --name mongo-test \
+            -e MONGO_REPLICA_SET_NAME=rs0 \
+            -e MONGO_INITDB_ROOT_USERNAME=root \
+            -e MONGO_INITDB_ROOT_PASSWORD=example \
+            "$IMAGE:test"
+          ok=
+          for i in $(seq 1 60); do
+            if [ "$(docker exec mongo-test mongosh -u root -p example --quiet --eval 'rs.status().ok' 2>/dev/null)" = "1" ]; then
+              ok=1; break
+            fi
+            sleep 2
+          done
+          if [ -z "$ok" ]; then
+            echo "::error::replica set never became ready"
+            docker logs mongo-test
+            exit 1
+          fi
+          docker exec mongo-test mongosh -u root -p example --quiet --eval '
+            const h = db.hello();
+            if (!h.isWritablePrimary || h.setName !== "rs0") { throw new Error("not primary of rs0: " + JSON.stringify(h)); }
+            db.getSiblingDB("smoke").t.insertOne({ ok: true });
+            if (db.getSiblingDB("smoke").t.countDocuments() !== 1) { throw new Error("write failed"); }
+            print("replica set OK: " + h.setName + " primary=" + h.me + " version=" + db.version());
+          '
+          docker rm -f mongo-test
+
+      - name: 📤 Export digest
+        if: env.PUSH == 'true'
+        run: |
+          mkdir -p "${{ runner.temp }}/digests"
+          digest="${{ steps.build.outputs.digest }}"
+          touch "${{ runner.temp }}/digests/${digest#sha256:}"
+
+      - name: 📤 Upload digest
+        if: env.PUSH == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: digests-${{ matrix.directory }}-${{ matrix.arch }}
+          path: ${{ runner.temp }}/digests/*
+          if-no-files-found: error
+          retention-days: 1
+
+  merge:
+    name: 🚀 Push manifest ${{ matrix.directory }}
+    if: ${{ github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && inputs.push) }}
+    needs:
+      - find
+      - build
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include: ${{ fromJson(needs.find.outputs.entries) }}
+    steps:
+      - name: 📥 Download digests
+        uses: actions/download-artifact@v4
+        with:
+          path: ${{ runner.temp }}/digests
+          pattern: digests-${{ matrix.directory }}-*
+          merge-multiple: true
+
+      - name: 🔧 Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
 
       - name: 🔑 Login to Docker Hub
         uses: docker/login-action@v3
@@ -73,9 +207,18 @@ jobs:
           username: ${{ secrets.DOCKER_HUB_USERNAME }}
           password: ${{ secrets.DOCKER_HUB_ACCESS_TOKEN }}
 
-      - name: 🚀 Build and push
+      - name: 🚀 Create and push multi-arch manifest
+        working-directory: ${{ runner.temp }}/digests
         env:
-          BUILDX_BUILDER: ${{ steps.buildx.outputs.name }}
+          TAGS: ${{ matrix.alltags }}
         run: |
-          chmod +x build.sh
-          ./build.sh "${{ matrix.tags }}" "${{ matrix.sharedtags }}" "${{ matrix.architectures }}" "${{ matrix.directory }}"
+          set -Eeuo pipefail
+          tagArgs=()
+          for tag in $TAGS; do tagArgs+=( -t "$IMAGE:$tag" ); done
+          echo "Pushing ${{ matrix.directory }} as: $TAGS"
+          docker buildx imagetools create "${tagArgs[@]}" $(printf "$IMAGE@sha256:%s " *)
+
+      - name: 🔍 Inspect
+        env:
+          TAGS: ${{ matrix.alltags }}
+        run: docker buildx imagetools inspect "$IMAGE:${TAGS%% *}"
