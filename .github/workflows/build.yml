@@ -74,11 +74,14 @@ jobs:
           echo "entries: $entries"
 
           # Cross product of entries x architectures, each on a *native* runner
-          # (no QEMU): amd64 on ubuntu-24.04, arm64 on ubuntu-24.04-arm.
+          # (no QEMU): amd64 on ubuntu-22.04, arm64 on ubuntu-22.04-arm.
+          # These hosts use Linux 6.8; MongoDB 8.x rejects newer affected kernels.
+          # https://www.mongodb.com/docs/manual/release-notes/8.0/
+          # Revisit before the 22.04 runners are removed (April 2027).
           builds="$(jq -c '
             {
-              "amd64":   { platform: "linux/amd64",    runner: "ubuntu-24.04" },
-              "arm64v8": { platform: "linux/arm64/v8", runner: "ubuntu-24.04-arm" }
+              "amd64":   { platform: "linux/amd64",    runner: "ubuntu-22.04" },
+              "arm64v8": { platform: "linux/arm64/v8", runner: "ubuntu-22.04-arm" }
             } as $archMap
             | [
               .[] as $e
