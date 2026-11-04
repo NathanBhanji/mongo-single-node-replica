@@ -255,6 +255,26 @@ if [ "$originalArgOne" = 'mongod' ]; then
 		mongoShell='mongosh'
 	fi
 
+	# A replica-set key is a credential, not an image asset. Persist a distinct
+	# key with the database and never replace it on a container restart.
+	if [ -n "${MONGO_REPLICA_SET_NAME:-}" ]; then
+		if ! replicaKeyFile="$(_mongod_hack_get_arg_val --keyFile "$@")"; then
+			replicaKeyFile=
+			if _parse_config "$@"; then
+				replicaKeyFile="$(jq -r '.security.keyFile // empty' "$jsonConfigFile")"
+			fi
+		fi
+		if [ -z "$replicaKeyFile" ]; then
+			replicaKeyFile="$(_dbPath "$@")/.replica-set-keyfile"
+			if [ ! -e "$replicaKeyFile" ]; then
+				# noclobber prevents concurrent starts from overwriting a saved key.
+				( umask 077; set -o noclobber; head -c 756 /dev/urandom | base64 > "$replicaKeyFile" )
+			fi
+		fi
+		_mongod_hack_ensure_arg_val --keyFile "$replicaKeyFile" "$@"
+		set -- "${mongodHackedArgs[@]}"
+	fi
+
 	# pre-check a few factors to see if it's even worth bothering with initdb
 	shouldPerformInitdb=
 	if [ "$MONGO_INITDB_ROOT_USERNAME" ] && [ "$MONGO_INITDB_ROOT_PASSWORD" ]; then
@@ -305,7 +325,12 @@ if [ "$originalArgOne" = 'mongod' ]; then
 		if _parse_config "$@"; then
 			_mongod_hack_ensure_arg_val --config "$tempConfigFile" "${mongodHackedArgs[@]}"
 		fi
-		_mongod_hack_ensure_arg_val --bind_ip "$IP_ADDRESS" "${mongodHackedArgs[@]}"
+		initBindIp=127.0.0.1
+		if [ -n "${MONGO_REPLICA_SET_NAME:-}" ]; then
+			# Replica initialization must recognize its advertised address.
+			initBindIp+=",$IP_ADDRESS"
+		fi
+		_mongod_hack_ensure_arg_val --bind_ip "$initBindIp" "${mongodHackedArgs[@]}"
 		_mongod_hack_ensure_arg_val --port 27017 "${mongodHackedArgs[@]}"
 		_mongod_hack_ensure_no_arg --bind_ip_all "${mongodHackedArgs[@]}"
 
@@ -314,7 +339,13 @@ if [ "$originalArgOne" = 'mongod' ]; then
 		_mongod_hack_ensure_no_arg --auth "${mongodHackedArgs[@]}"
 		# "keyFile implies security.authorization"
 		# https://docs.mongodb.com/manual/reference/configuration-options/#mongodb-setting-security.keyFile
-		_mongod_hack_ensure_no_arg_val --keyFile "${mongodHackedArgs[@]}"
+		if [ -z "${MONGO_REPLICA_SET_NAME:-}" ]; then
+			_mongod_hack_ensure_no_arg_val --keyFile "${mongodHackedArgs[@]}"
+		else
+			# Keep authorization enabled on the network-facing bootstrap server.
+			# The localhost exception permits replica initialization and the first user.
+			_mongod_hack_ensure_arg --auth "${mongodHackedArgs[@]}"
+		fi
 
 		# "BadValue: need sslPEMKeyFile when SSL is enabled" vs "BadValue: need to enable SSL via the sslMode flag when using SSL configuration parameters"
 		tlsMode='disabled'
@@ -345,15 +376,15 @@ if [ "$originalArgOne" = 'mongod' ]; then
 
 		"${mongodHackedArgs[@]}" --fork
 
-		mongo=( "$mongoShell" --host "$IP_ADDRESS" --port 27017 --quiet )
+		mongo=( "$mongoShell" --host 127.0.0.1 --port 27017 --quiet )
 		
 		if [ -n "${MONGO_REPLICA_SET_NAME:-}" ]; then
 			CONFIG="{ _id: $(_js_escape "$MONGO_REPLICA_SET_NAME"), members: [{ _id: 0, host: $(_js_escape "$IP_ADDRESS:27017"), priority: 7 }]}"
-			"$mongoShell" --host "$IP_ADDRESS" --port 27017 --eval "rs.initiate($CONFIG)"
+			"$mongoShell" --host 127.0.0.1 --port 27017 --eval "rs.initiate($CONFIG)"
 			n=0
 			until [ $n -ge 20 ]
 			do
-				mongosh admin --host "$IP_ADDRESS" --port 27017 --eval "rs.status().ok" && echo "Replica set $MONGO_REPLICA_SET_NAME configured" && break
+				"$mongoShell" admin --host 127.0.0.1 --port 27017 --eval 'if (!db.hello().isWritablePrimary) quit(1)' && echo "Replica set $MONGO_REPLICA_SET_NAME configured" && break
 				n=$[$n+1]
 				echo "Waiting for replica set $MONGO_REPLICA_SET_NAME to be configured..."
 				sleep 2
@@ -395,6 +426,9 @@ if [ "$originalArgOne" = 'mongod' ]; then
 					roles: [ { role: 'root', db: $(_js_escape "$rootAuthDatabase") } ]
 				})
 			EOJS
+			if [ -n "${MONGO_REPLICA_SET_NAME:-}" ]; then
+				mongo+=( --username "$MONGO_INITDB_ROOT_USERNAME" --password "$MONGO_INITDB_ROOT_PASSWORD" --authenticationDatabase admin )
+			fi
 		fi
 
 		export MONGO_INITDB_DATABASE="${MONGO_INITDB_DATABASE:-test}"
@@ -433,7 +467,7 @@ if [ "$originalArgOne" = 'mongod' ]; then
 
 	# Runs as replica set
 	if [ -n "${MONGO_REPLICA_SET_NAME:-}" ]; then
-		set -- "$@" --replSet "$MONGO_REPLICA_SET_NAME" --keyFile auth/keyfile
+		set -- "$@" --replSet "$MONGO_REPLICA_SET_NAME"
 	fi
 fi
 

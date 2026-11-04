@@ -118,10 +118,6 @@ ENV HOME /data/db
 # https://www.mongodb.com/docs/manual/administration/tcmalloc-performance/#disable-glibc-rseq
 ENV GLIBC_TUNABLES glibc.pthread.rseq=0
 
-COPY keyfile /auth/keyfile
-RUN chmod 400 /auth/keyfile
-RUN chown mongodb:mongodb /auth/keyfile
-
 COPY docker-entrypoint.sh /usr/local/bin/
 ENTRYPOINT ["docker-entrypoint.sh"]
 
