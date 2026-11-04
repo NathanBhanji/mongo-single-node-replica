@@ -127,10 +127,6 @@ ENV HOME /data/db
 ENV GLIBC_TUNABLES glibc.pthread.rseq=0
 {{ ) else "" end -}}
 
-COPY keyfile /auth/keyfile
-RUN chmod 400 /auth/keyfile
-RUN chown mongodb:mongodb /auth/keyfile
-
 COPY docker-entrypoint.sh /usr/local/bin/
 ENTRYPOINT ["docker-entrypoint.sh"]
 

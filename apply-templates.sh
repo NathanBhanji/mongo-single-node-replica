@@ -47,5 +47,4 @@ for version; do
 	} > "$version/Dockerfile"
 
 	cp -a docker-entrypoint.sh "$version/"
-	cp -a keyfile "$version/"
 done

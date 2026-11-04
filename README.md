@@ -23,3 +23,23 @@ Architectures:
 - `arm64`
 
 I do not plan on adding support for windows. It *should* be easy to do this with the official images.
+
+## Replica-set authentication
+
+Replica-set containers generate a private internal-authentication key on first
+startup at `<dbPath>/.replica-set-keyfile`. Keep the database volume across
+container replacements; the key is reused on restart. An explicit `--keyFile`
+(or `security.keyFile` in the configuration file) uses your supplied key instead.
+The image no longer includes a shared key.
+
+Set both `MONGO_INITDB_ROOT_USERNAME` and `MONGO_INITDB_ROOT_PASSWORD` when
+initializing a replica set with database initialization scripts. Initialization
+keeps access control enabled, creates the first root user through the localhost
+exception, and runs subsequent initialization scripts with root authentication.
+Ordinary, non-replica initialization remains bound to loopback until complete.
+
+Existing single-node database volumes keep their users and data. The first
+startup with this change generates an internal key if one has not been saved;
+there is no automatic change to user passwords. Deployments that explicitly
+supply an internal key retain it. This image is intended for single-node sets;
+do not use automatic per-volume keys to join multiple members.
